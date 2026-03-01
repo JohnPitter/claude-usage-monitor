@@ -1,7 +1,7 @@
 {
   "name": "claude-usage-monitor",
-  "version": "1.0.0",
-  "description": "Displays Claude Code usage consumption on every session start with colored ASCII progress bars and smart alerts",
+  "version": "1.1.0",
+  "description": "Displays Claude Code usage consumption with startup card, persistent status line, and live updates",
   "author": "JohnPitter",
   "license": "MIT",
   "homepage": "https://github.com/JohnPitter/claude-usage-monitor"
