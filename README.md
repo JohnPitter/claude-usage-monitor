@@ -8,7 +8,7 @@
 
 **See your Claude Code usage limits every time you start a session**
 
-*Colored progress bars, smart alerts, and zero configuration*
+*Progress bars, smart alerts, and zero configuration*
 
 [Installation](#installation) •
 [Features](#features) •
@@ -66,8 +66,8 @@ git clone https://github.com/JohnPitter/claude-usage-monitor.git
 | Feature | Description |
 |---------|-------------|
 | **Auto Display** | Shows usage on every session start via SessionStart hook |
-| **Progress Bars** | 10-char ASCII bars with filled/empty indicators |
-| **Color Coding** | Green (<60%), Yellow (60-80%), Red (>80%) |
+| **Progress Bars** | 10-char Unicode bars (█/░) with percentage |
+| **Status Icons** | ✅ (<60%), ⚡ (60-80%), ⚠️ (>80%) |
 | **Smart Alerts** | Warning message when approaching any limit |
 | **Reset Countdown** | Shows time until each limit resets |
 | **Extra Usage** | Displays monthly credit balance if enabled |
@@ -80,29 +80,33 @@ git clone https://github.com/JohnPitter/claude-usage-monitor.git
 
 ## Output
 
+The plugin injects usage data as session context via the `additionalContext` hook output. Claude sees this data at the start of every session.
+
 ### Normal Usage
 
 ```
-┌─ Claude Code Usage ────────────────────────────┐
-│  5-Hour:   ████░░░░░░  42%  (resets 2h 15m)   │
-│  7-Day:    ██████░░░░  62%  (resets 3d)        │
-│  Sonnet:   ████░░░░░░  42%  (resets 3d)        │
-│  Plan: Pro  │  Extra: $2.40 / $20.00           │
-└─────────────────────────────────────────────────┘
+Claude Code Usage Monitor:
+
+✅ 5-Hour: ████░░░░░░ 42% (resets 2h 15m)
+✅ 7-Day: ██████░░░░ 62% (resets 3d)
+✅ Sonnet 7-Day: ████░░░░░░ 42% (resets 3d)
+
+Plan: Pro | Extra Usage: $2.40 / $20.00
 ```
 
 ### High Usage Alert
 
-When any limit exceeds 80%, you get a colored warning:
+When any limit exceeds 80%, you get a warning:
 
 ```
-┌─ Claude Code Usage ────────────────────────────┐
-│  5-Hour:   ██████████  95%  (resets 45m)       │
-│  ⚠  Approaching 5-hour limit!                  │
-│  7-Day:    ██████░░░░  62%  (resets 3d)        │
-│  Sonnet:   ████░░░░░░  42%  (resets 3d)        │
-│  Plan: Pro  │  Extra: $2.40 / $20.00           │
-└─────────────────────────────────────────────────┘
+Claude Code Usage Monitor:
+
+⚠️ 5-Hour: ██████████ 95% (resets 45m)
+   ⚠️ WARNING: Approaching 5-Hour limit!
+✅ 7-Day: ██████░░░░ 62% (resets 3d)
+✅ Sonnet 7-Day: ████░░░░░░ 42% (resets 3d)
+
+Plan: Pro | Extra Usage: $2.40 / $20.00
 ```
 
 ### API Key Mode
@@ -110,9 +114,7 @@ When any limit exceeds 80%, you get a colored warning:
 If using an API key instead of OAuth:
 
 ```
-┌─ Claude Code Usage ────────────────────────────┐
-│  Mode: API Key (no usage limits available)     │
-└─────────────────────────────────────────────────┘
+Claude Code Usage: API Key mode (no usage limits available)
 ```
 
 ---
@@ -123,22 +125,22 @@ If using an API key instead of OAuth:
 
 ### Color Thresholds
 
-| Usage Level | Color | Indicator |
-|-------------|-------|-----------|
-| Below 60% | Green | Normal usage |
-| 60% - 80% | Yellow | Moderate usage |
-| Above 80% | Red | High usage + alert message |
+| Usage Level | Icon | Indicator |
+|-------------|------|-----------|
+| Below 60% | ✅ | Normal usage |
+| 60% - 80% | ⚡ | Moderate usage |
+| Above 80% | ⚠️ | High usage + warning message |
 
 ### Behavior
 
 | Scenario | Behavior |
 |----------|----------|
-| OAuth connected | Shows full usage card with all limits |
-| API key only | Shows simplified card |
-| No credentials | Silent — shows nothing |
-| API timeout (>5s) | Silent — shows nothing |
-| Token expired | Auto-refreshes, then shows card |
-| Network error | Silent — shows nothing |
+| OAuth connected | Injects full usage data with all limits |
+| API key only | Injects API key mode message |
+| No credentials | Silent — empty context |
+| API timeout (>5s) | Silent — empty context |
+| Token expired | Auto-refreshes, then injects usage data |
+| Network error | Silent — empty context |
 
 ---
 
@@ -148,8 +150,8 @@ If using an API key instead of OAuth:
 2. Plugin reads `~/.claude/.credentials.json` for OAuth token
 3. If token is expiring soon (<10min), auto-refreshes it
 4. Calls `api.anthropic.com/api/oauth/usage` with Bearer token
-5. Parses response and renders colored ASCII card
-6. Outputs card to terminal — Claude Code displays it
+5. Parses response and builds usage summary with progress bars
+6. Outputs JSON with `hookSpecificOutput.additionalContext` — Claude Code injects it as session context
 
 ### API Response
 
@@ -174,7 +176,8 @@ claude-usage-monitor/
 ├── .claude-plugin/
 │   └── plugin.json          # Plugin manifest
 ├── hooks/
-│   └── hooks.json           # SessionStart hook config
+│   ├── hooks.json           # SessionStart hook config
+│   └── session-start.sh     # Bash wrapper for Node.js script
 ├── lib/
 │   └── usage-check.js       # Main script (Node.js)
 ├── docs/
@@ -195,6 +198,39 @@ claude-usage-monitor/
 | Team | All limits | If enabled |
 | Free | API Key card | N/A |
 | API Key | API Key card | N/A |
+
+---
+
+## Known Limitations
+
+| Issue | Description | Workaround |
+|-------|-------------|------------|
+| `CLAUDE_PLUGIN_ROOT` not set | The env var is not available during SessionStart hooks ([#24529](https://github.com/anthropics/claude-code/issues/24529)) | Plugin uses `node` command; for manual install, add hook with absolute path to `settings.json` |
+| Local plugins skip hooks | Locally installed plugins may not execute hooks ([#11509](https://github.com/anthropics/claude-code/issues/11509)) | Add the hook directly to `~/.claude/settings.json` |
+
+### Manual Hook Setup (if auto-detection doesn't work)
+
+Add this to your `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /path/to/claude-usage-monitor/lib/usage-check.js"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Replace `/path/to/` with the actual plugin installation path.
 
 ---
 
