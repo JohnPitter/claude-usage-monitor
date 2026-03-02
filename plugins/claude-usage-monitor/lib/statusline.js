@@ -25,18 +25,28 @@ const YELLOW = "\x1b[33m";
 const RED = "\x1b[31m";
 const CYAN = "\x1b[36m";
 const MAGENTA = "\x1b[35m";
+// Context window limits per model (tokens)
+const CONTEXT_LIMITS = {
+  "claude-opus-4-6": 200000,
+  "claude-sonnet-4-6": 200000,
+  "claude-haiku-4-5": 200000,
+  default: 200000,
+};
 
 /**
- * Detect thinking mode by reading the tail of the session transcript.
+ * Read the tail of the session transcript and extract:
+ * - thinking mode (from the last assistant turn)
+ * - last input_tokens (context size from the most recent API response)
+ *
  * Claude Code writes each content block as a separate JSONL entry.
- * We collect the last few assistant turns and check the most recent
- * turn that has text content for thinking blocks.
  */
-function detectThinkingFromTranscript(transcriptPath) {
-  if (!transcriptPath) return null; // unknown
+function parseTranscriptTail(transcriptPath) {
+  const result = { thinking: null, inputTokens: null };
+  if (!transcriptPath) return result;
+
   try {
     const stat = statSync(transcriptPath);
-    const readSize = Math.min(60000, stat.size);
+    const readSize = Math.min(120000, stat.size);
     const buffer = Buffer.alloc(readSize);
     const fd = openSync(transcriptPath, "r");
     readSync(fd, buffer, 0, readSize, Math.max(0, stat.size - readSize));
@@ -47,35 +57,72 @@ function detectThinkingFromTranscript(transcriptPath) {
 
     // Parse all entries and group into turns separated by user/system entries
     const turns = [];
-    let currentTurn = { hasThinking: false, hasText: false };
+    let currentTurn = { hasThinking: false, hasText: false, inputTokens: null };
 
     for (const line of lines) {
       try {
         const entry = JSON.parse(line);
-        if (entry.type === "assistant" && entry.message?.content) {
-          for (const block of entry.message.content) {
-            if (block.type === "thinking") currentTurn.hasThinking = true;
-            if (block.type === "text") currentTurn.hasText = true;
+        if (entry.type === "assistant" && entry.message) {
+          if (entry.message.content) {
+            for (const block of entry.message.content) {
+              if (block.type === "thinking") currentTurn.hasThinking = true;
+              if (block.type === "text") currentTurn.hasText = true;
+            }
+          }
+          // Extract token usage from assistant response
+          const usage = entry.message.usage ?? entry.usage;
+          if (usage?.input_tokens) {
+            currentTurn.inputTokens = usage.input_tokens;
           }
         } else if (entry.type === "user") {
-          if (currentTurn.hasText) turns.push(currentTurn);
-          currentTurn = { hasThinking: false, hasText: false };
+          if (currentTurn.hasText || currentTurn.inputTokens) turns.push(currentTurn);
+          currentTurn = { hasThinking: false, hasText: false, inputTokens: null };
         }
       } catch {
         // skip malformed lines
       }
     }
     // Don't forget the last (current) turn
-    if (currentTurn.hasText) turns.push(currentTurn);
+    if (currentTurn.hasText || currentTurn.inputTokens) turns.push(currentTurn);
 
-    if (turns.length === 0) return null;
+    if (turns.length > 0) {
+      const lastTurn = turns[turns.length - 1];
+      result.thinking = lastTurn.hasThinking;
 
-    // Check the last turn with text content for thinking state.
-    // This reflects the actual thinking state of the most recent response.
-    return turns[turns.length - 1].hasThinking;
+      // Find the last turn with token data (might not be the very last)
+      for (let i = turns.length - 1; i >= 0; i--) {
+        if (turns[i].inputTokens != null) {
+          result.inputTokens = turns[i].inputTokens;
+          break;
+        }
+      }
+    }
+
+    return result;
   } catch {
-    return null;
+    return result;
   }
+}
+
+/**
+ * Format token count in compact form: 45.2k, 123.4k, etc.
+ */
+function formatTokens(tokens) {
+  if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}k`;
+  return `${tokens}`;
+}
+
+/**
+ * Render a context window bar with color based on usage fraction
+ */
+function renderContextBar(fraction) {
+  const clamped = Math.max(0, Math.min(1, fraction));
+  const filled = Math.round(clamped * 5);
+  const empty = 5 - filled;
+  let color = GREEN;
+  if (clamped >= 0.85) color = RED;
+  else if (clamped >= 0.65) color = YELLOW;
+  return `${color}${"█".repeat(filled)}${DIM}${"░".repeat(empty)}${RESET}`;
 }
 
 function getColor(fraction) {
@@ -173,11 +220,24 @@ function main() {
     parts.push(`${BOLD}Sonnet 7d${RESET} ${bar} ${color}${pct}%${RESET}${DIM}(${reset})${RESET}`);
   }
 
-  // Thinking mode — detected from session transcript
-  const thinking = detectThinkingFromTranscript(session?.transcript_path);
-  if (thinking === true) {
+  // Parse transcript for thinking mode and context tokens
+  const transcriptData = parseTranscriptTail(session?.transcript_path);
+
+  // Context window usage
+  const inputTokens = transcriptData.inputTokens;
+  if (inputTokens != null) {
+    const modelKey = session?.model ?? "default";
+    const limit = CONTEXT_LIMITS[modelKey] ?? CONTEXT_LIMITS.default;
+    const frac = Math.max(0, Math.min(1, inputTokens / limit));
+    const bar = renderContextBar(frac);
+    const color = frac >= 0.85 ? RED : frac >= 0.65 ? YELLOW : GREEN;
+    parts.push(`${BOLD}Ctx${RESET} ${bar} ${color}${formatTokens(inputTokens)}${RESET}${DIM}/${formatTokens(limit)}${RESET}`);
+  }
+
+  // Thinking mode
+  if (transcriptData.thinking === true) {
     parts.push(`${MAGENTA}${BOLD}Think:ON${RESET}`);
-  } else if (thinking === false) {
+  } else if (transcriptData.thinking === false) {
     parts.push(`${DIM}Think:OFF${RESET}`);
   }
 
