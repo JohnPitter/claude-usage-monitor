@@ -1,0 +1,14 @@
+{
+  "name": "claude-usage-monitor",
+  "version": "1.1.0",
+  "description": "Displays Claude Code usage consumption with startup card, persistent status line, and live updates",
+  "author": {
+    "name": "JohnPitter",
+    "url": "https://github.com/JohnPitter"
+  },
+  "homepage": "https://github.com/JohnPitter/claude-usage-monitor",
+  "repository": "https://github.com/JohnPitter/claude-usage-monitor",
+  "license": "MIT",
+  "hooks": "./hooks/hooks.json",
+  "keywords": ["usage", "monitoring", "claude-code", "oauth", "limits", "progress-bar", "status-line"]
+}

@@ -3,103 +3,58 @@
 <div align="center">
 
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-orange?style=for-the-badge&logo=anthropic)
-![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=nodedotjs)
-![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 ![Version](https://img.shields.io/badge/Version-1.1.0-purple?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=nodedotjs)
 
-**See your Claude Code usage limits at a glance — always**
+**See your Claude Code usage limits at a glance — always.**
 
-*Startup card, persistent status line, live updates, and zero configuration*
+*Startup card + persistent status line + live updates + zero configuration*
 
 [Installation](#installation) •
 [Features](#features) •
-[Output](#output) •
-[Status Line](#status-line) •
-[Configuration](#configuration) •
-[How It Works](#how-it-works)
+[Output](#what-you-see) •
+[How It Works](#how-it-works) •
+[Contributing](#contributing)
 
 </div>
 
 ---
 
-## Overview
+## What You See
 
-Claude Usage Monitor is a Claude Code plugin that displays your usage consumption in two ways:
+### Startup Card
 
-1. **Startup card** — Full usage summary shown when you open a session
-2. **Status line** — Compact, always-visible bar at the bottom of the terminal that updates live
+Every time you open a session, a full usage summary appears automatically:
 
-No commands to remember — it just works.
+```
+✅ Opus (5-hour rolling): ████░░░░░░ 42% (resets in 2h 15m)
+✅ All models (7-day rolling): ██████░░░░ 62% (resets in 3d)
+✅ Sonnet (7-day rolling): ████░░░░░░ 42% (resets in 3d)
 
-**What you see:**
-- **5-Hour limit** — Current utilization with reset countdown
-- **7-Day limit** — Weekly usage across all models
-- **Sonnet limit** — Weekly Sonnet-specific usage
-- **Plan & Extra Usage** — Your subscription plan and extra credits balance
-- **Session cost** — Real-time cost of your current session
-
----
-
-## Installation
-
-### Requirements
-
-| Requirement | Version |
-|-------------|---------|
-| Claude Code CLI | Latest |
-| Node.js | 18+ |
-| Authentication | OAuth (Pro/Max/Team plans) |
-
-### Install via Claude Code
-
-```bash
-claude /install-plugin https://github.com/JohnPitter/claude-usage-monitor
+Plan: Max | Extra: $10.49 / $275.00
 ```
 
-### Manual Install
+### Status Line
 
-1. Clone the repository:
+A compact bar at the bottom of your terminal, always visible, updating after each response:
 
-```bash
-git clone https://github.com/JohnPitter/claude-usage-monitor.git ~/.claude/plugins/claude-usage-monitor
+```
+Opus 5h █░░░░ 21%(2h)  All 7d █░░░░ 29%(4d)  Sonnet 7d █░░░░ 4%(4d)  Think:OFF
 ```
 
-2. Add the hooks and status line to `~/.claude/settings.json`:
+### Smart Alerts
 
-```json
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/plugins/claude-usage-monitor/lib/usage-check.js"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node ~/.claude/plugins/claude-usage-monitor/lib/refresh-cache.js"
-          }
-        ]
-      }
-    ]
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "node ~/.claude/plugins/claude-usage-monitor/lib/statusline.js"
-  }
-}
+When any limit exceeds 80%, you get a warning:
+
 ```
+⚠️ Opus (5-hour rolling): ██████████ 95% (resets in 45m)
+   ⚠️ WARNING: Approaching limit!
+✅ All models (7-day rolling): ██████░░░░ 62% (resets in 3d)
+✅ Sonnet (7-day rolling): ████░░░░░░ 42% (resets in 3d)
 
-3. Open a new Claude Code session.
+Plan: Max | Extra: $10.49 / $275.00
+```
 
 ---
 
@@ -107,84 +62,68 @@ git clone https://github.com/JohnPitter/claude-usage-monitor.git ~/.claude/plugi
 
 | Feature | Description |
 |---------|-------------|
-| **Startup Card** | Full usage summary shown on session start via `systemMessage` |
+| **Startup Card** | Full usage summary on session start via `systemMessage` |
 | **Status Line** | Compact bar at the bottom of the terminal, always visible |
-| **Live Updates** | Usage data refreshes automatically after each Claude response |
-| **Progress Bars** | Unicode bars (█/░) with color-coded thresholds |
-| **Status Icons** | ✅ (<60%), ⚡ (60-80%), ⚠️ (>80%) |
-| **Smart Alerts** | Warning when approaching any limit |
+| **Live Updates** | Usage data refreshes after each Claude response |
+| **Progress Bars** | Unicode bars with color-coded thresholds (green/yellow/red) |
+| **Smart Alerts** | Warning when approaching any limit (>80%) |
 | **Reset Countdown** | Time until each limit resets |
-| **Session Cost** | Real-time session cost in the status line |
+| **Thinking Mode** | Shows if extended thinking is ON/OFF (detected from transcript) |
 | **Extra Usage** | Monthly credit balance if enabled |
 | **Token Refresh** | Auto-refreshes expired OAuth tokens |
 | **Silent Fallback** | Never blocks session — fails silently on errors |
 | **Smart Caching** | Only re-fetches API when cache is older than 2 minutes |
 | **Zero Config** | Works out of the box with your existing Claude Code OAuth |
+| **`/full-costs`** | Slash command for detailed usage card on demand |
 
 ---
 
-## Output
+## Installation
 
-### Startup Card
+### Requirements
 
-Displayed once when you open Claude Code, via the `systemMessage` hook output:
+| Requirement | Details |
+|-------------|---------|
+| Claude Code CLI | Latest version |
+| Node.js | 18+ |
+| Authentication | OAuth (Pro/Max/Team plans) |
 
-```
-SessionStart:startup says:
-✅ 5-Hour: ████░░░░░░ 42% (resets 2h 15m)
-✅ 7-Day: ██████░░░░ 62% (resets 3d)
-✅ Sonnet 7-Day: ████░░░░░░ 42% (resets 3d)
+### Install via Marketplace (Recommended)
 
-Plan: Pro | Extra Usage: $2.40 / $20.00
-```
+**Step 1:** Add the marketplace
 
-### High Usage Alert
-
-When any limit exceeds 80%:
-
-```
-⚠️ 5-Hour: ██████████ 95% (resets 45m)
-   ⚠️ WARNING: Approaching 5-Hour limit!
-✅ 7-Day: ██████░░░░ 62% (resets 3d)
-✅ Sonnet 7-Day: ████░░░░░░ 42% (resets 3d)
-
-Plan: Max | Extra Usage: $10.49 / $275.00
+```bash
+claude plugin marketplace add https://github.com/JohnPitter/claude-usage-monitor
 ```
 
-### API Key Mode
+**Step 2:** Install the plugin
 
-If using an API key instead of OAuth:
-
-```
-Claude Code Usage: API Key mode (no usage limits available)
+```bash
+claude plugin install claude-usage-monitor
 ```
 
----
+**Step 3:** Open a new Claude Code session — the usage card appears automatically.
 
-## Status Line
+### Install via Claude Code
 
-The status line sits at the bottom of your terminal, alongside the permission mode indicator. It shows a compact, color-coded summary that updates after each Claude response.
-
-```
-5h █░░░░ 21%(2h)  7d █░░░░ 29%(4d)  $10/275  session:$0.15
+```bash
+claude /install-plugin https://github.com/JohnPitter/claude-usage-monitor
 ```
 
-| Element | Description |
-|---------|-------------|
-| `5h █░░░░ 21%(2h)` | 5-hour limit: mini bar, percentage, reset time |
-| `7d █░░░░ 29%(4d)` | 7-day limit: mini bar, percentage, reset time |
-| `$10/275` | Extra usage: used / monthly limit |
-| `session:$0.15` | Current session cost (from Claude Code) |
+### Status Line Setup
 
-### Color Coding
+After installing, add the status line to your `~/.claude/settings.json`:
 
-The status line uses ANSI colors for quick visual scanning:
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "node ~/.claude/plugins/cache/<marketplace-hash>/claude-usage-monitor/1.1.0/lib/statusline.js"
+  }
+}
+```
 
-| Color | Usage Level |
-|-------|-------------|
-| Green | Below 60% |
-| Yellow | 60% - 80% |
-| Red | Above 80% |
+> **Tip:** The exact path depends on your installation method. Check `~/.claude/plugins/cache/` for your plugin's location, or use the absolute path from `~/.claude/plugins/installed_plugins.json`.
 
 ---
 
@@ -192,7 +131,7 @@ The status line uses ANSI colors for quick visual scanning:
 
 **No configuration needed.** The plugin reads your existing Claude Code OAuth credentials from `~/.claude/.credentials.json`.
 
-### Behavior
+### Behavior by Scenario
 
 | Scenario | Behavior |
 |----------|----------|
@@ -202,6 +141,16 @@ The status line uses ANSI colors for quick visual scanning:
 | API timeout (>5s) | Silent |
 | Token expired | Auto-refreshes, then shows data |
 | Network error | Silent |
+
+### Plan Compatibility
+
+| Plan | Startup Card | Status Line | Extra Usage |
+|------|:---:|:---:|:---:|
+| Pro | All limits | All limits | If enabled |
+| Max | All limits | All limits | If enabled |
+| Team | All limits | All limits | If enabled |
+| Free | API Key msg | No data | N/A |
+| API Key | API Key msg | No data | N/A |
 
 ---
 
@@ -229,30 +178,27 @@ SessionStart hook                   Stop hook
 
 ### Flow
 
-1. **SessionStart** — `usage-check.js` fetches the Anthropic Usage API, displays the startup card via `systemMessage`, injects data as `additionalContext`, and caches the response
-2. **Status line** — `statusline.js` reads the cached data and session info (cost, model) from stdin, outputs a compact colored summary
-3. **Stop hook** — `refresh-cache.js` runs after each Claude response; if the cache is older than 2 minutes, re-fetches the API to keep the status line current
+1. **SessionStart** — `usage-check.js` fetches the Anthropic Usage API, displays the startup card via `systemMessage`, injects data as `additionalContext` for Claude, and caches the response.
+2. **Status Line** — `statusline.js` reads cached data and session info (transcript path for thinking detection), outputs a compact colored summary.
+3. **Stop Hook** — `refresh-cache.js` runs after each Claude response. If the cache is older than 2 minutes, re-fetches the API to keep the status line current.
+4. **`/full-costs`** — On-demand detailed usage card with wider progress bars, timestamps, and extra usage breakdown.
 
 ### API
 
-The plugin calls `GET https://api.anthropic.com/api/oauth/usage` with:
+Calls `GET https://api.anthropic.com/api/oauth/usage` with:
 
 | Header | Value |
 |--------|-------|
 | `Authorization` | `Bearer <oauth_token>` |
 | `anthropic-beta` | `oauth-2025-04-20` |
 
-Response fields used:
+### Color Coding
 
-| Field | Description |
+| Color | Usage Level |
 |-------|-------------|
-| `five_hour.utilization` | 5-hour rolling window usage (%) |
-| `five_hour.resets_at` | When the 5-hour window resets |
-| `seven_day.utilization` | 7-day rolling window usage (%) |
-| `seven_day_sonnet.utilization` | 7-day Sonnet-specific usage (%) |
-| `extra_usage.is_enabled` | Whether extra credits are active |
-| `extra_usage.used_credits` | Credits consumed this month (cents) |
-| `extra_usage.monthly_limit` | Monthly credit cap (cents) |
+| Green | Below 60% |
+| Yellow | 60% - 80% |
+| Red | Above 80% |
 
 ---
 
@@ -261,32 +207,25 @@ Response fields used:
 ```
 claude-usage-monitor/
 ├── .claude-plugin/
-│   └── plugin.json            # Plugin manifest
-├── hooks/
-│   ├── hooks.json             # Hook definitions (SessionStart)
-│   └── session-start.sh       # Bash wrapper (fallback)
-├── lib/
-│   ├── usage-check.js         # SessionStart: fetch + display + cache
-│   ├── statusline.js          # Status line: compact colored bar
-│   └── refresh-cache.js       # Stop hook: refresh cache if stale
-├── docs/
-│   └── plans/                 # Design documents
+│   └── marketplace.json          # Marketplace manifest
+├── plugins/
+│   └── claude-usage-monitor/
+│       ├── .claude-plugin/
+│       │   └── plugin.json       # Plugin metadata
+│       ├── hooks/
+│       │   ├── hooks.json        # Hook definitions (SessionStart)
+│       │   └── session-start.sh  # Bash wrapper (fallback)
+│       ├── lib/
+│       │   ├── usage-check.js    # SessionStart: fetch + display + cache
+│       │   ├── statusline.js     # Status line: compact colored bar
+│       │   ├── refresh-cache.js  # Stop hook: refresh cache if stale
+│       │   └── full-costs.js     # /full-costs command: detailed card
+│       ├── commands/
+│       │   └── full-costs.md     # Slash command definition
+│       └── LICENSE
 ├── README.md
-├── LICENSE
 └── .gitignore
 ```
-
----
-
-## Compatibility
-
-| Plan | Startup Card | Status Line | Extra Usage |
-|------|-------------|-------------|-------------|
-| Pro | All limits | All limits | If enabled |
-| Max | All limits | All limits | If enabled |
-| Team | All limits | All limits | If enabled |
-| Free | API Key message | No data | N/A |
-| API Key | API Key message | No data | N/A |
 
 ---
 
@@ -294,24 +233,24 @@ claude-usage-monitor/
 
 | Issue | Description | Workaround |
 |-------|-------------|------------|
-| `CLAUDE_PLUGIN_ROOT` not set | Env var unavailable during SessionStart hooks ([#24529](https://github.com/anthropics/claude-code/issues/24529)) | Use absolute path in `settings.json` hooks |
-| Local plugins skip hooks | Locally installed plugins may not execute hooks ([#11509](https://github.com/anthropics/claude-code/issues/11509)) | Add hooks directly to `~/.claude/settings.json` |
 | VS Code extension | `systemMessage` not displayed in VS Code ([#15344](https://github.com/anthropics/claude-code/issues/15344)) | Use the CLI for full experience |
-
----
-
-## License
-
-MIT License — see [LICENSE](LICENSE) file.
+| Status line setup | Requires manual `settings.json` edit | Follow the [Status Line Setup](#status-line-setup) section |
 
 ---
 
 ## Contributing
 
 Contributions are welcome! Please:
+
 1. Fork the repository
 2. Create a feature branch
 3. Submit a pull request
+
+---
+
+## License
+
+MIT License — see [LICENSE](plugins/claude-usage-monitor/LICENSE) file.
 
 ---
 
