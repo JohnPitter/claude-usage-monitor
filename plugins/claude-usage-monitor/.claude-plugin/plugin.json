@@ -9,6 +9,5 @@
   "homepage": "https://github.com/JohnPitter/claude-usage-monitor",
   "repository": "https://github.com/JohnPitter/claude-usage-monitor",
   "license": "MIT",
-  "hooks": "./hooks/hooks.json",
   "keywords": ["usage", "monitoring", "claude-code", "oauth", "limits", "progress-bar", "status-line"]
 }
