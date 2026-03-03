@@ -70,9 +70,17 @@ function parseTranscriptTail(transcriptPath) {
             }
           }
           // Extract token usage from assistant response
+          // Total context = input_tokens + cache_creation_input_tokens + cache_read_input_tokens
+          // With prompt caching, input_tokens is often 1 (placeholder), real tokens are in cache fields
           const usage = entry.message.usage ?? entry.usage;
-          if (usage?.input_tokens) {
-            currentTurn.inputTokens = usage.input_tokens;
+          if (usage) {
+            const base = usage.input_tokens || 0;
+            const cacheCreation = usage.cache_creation_input_tokens || 0;
+            const cacheRead = usage.cache_read_input_tokens || 0;
+            const total = base + cacheCreation + cacheRead;
+            if (total > 0) {
+              currentTurn.inputTokens = total;
+            }
           }
         } else if (entry.type === "user") {
           if (currentTurn.hasText || currentTurn.inputTokens) turns.push(currentTurn);
