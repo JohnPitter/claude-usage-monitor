@@ -1,0 +1,10 @@
+{
+  "name": "claude-usage-monitor",
+  "version": "1.2.0",
+  "description": "Claude Code plugin for monitoring usage limits and context window",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/statusline.test.js"
+  },
+  "license": "MIT"
+}

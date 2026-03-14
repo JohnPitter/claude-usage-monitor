@@ -27,10 +27,10 @@ const CYAN = "\x1b[36m";
 const MAGENTA = "\x1b[35m";
 // Context window limits per model (tokens)
 const CONTEXT_LIMITS = {
-  "claude-opus-4-6": 200000,
-  "claude-sonnet-4-6": 200000,
+  "claude-opus-4-6": 1000000,
+  "claude-sonnet-4-6": 1000000,
   "claude-haiku-4-5": 200000,
-  default: 200000,
+  default: 1000000,
 };
 
 /**
