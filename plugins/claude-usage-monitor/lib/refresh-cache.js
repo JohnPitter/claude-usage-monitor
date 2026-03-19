@@ -98,18 +98,23 @@ async function fetchUsage(token) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-  const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "anthropic-beta": "oauth-2025-04-20",
-      "User-Agent": "claude-usage-monitor/1.0.0",
-    },
-    signal: controller.signal,
-  });
+  try {
+    const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "anthropic-beta": "oauth-2025-04-20",
+        "User-Agent": "claude-usage-monitor/1.0.0",
+      },
+      signal: controller.signal,
+    });
 
-  clearTimeout(timeout);
-  if (!res.ok) return null;
-  return res.json();
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
 }
 
 // ─── Main ───────────────────────────────────────────────────
@@ -132,9 +137,13 @@ async function main() {
 }
 
 // Global timeout — never hang
-const globalTimeout = setTimeout(() => process.exit(0), REQUEST_TIMEOUT + 1000);
+const globalTimeout = setTimeout(() => process._exit(0), REQUEST_TIMEOUT + 1000);
 globalTimeout.unref();
 
 main()
   .catch(() => {})
-  .finally(() => clearTimeout(globalTimeout));
+  .finally(() => {
+    clearTimeout(globalTimeout);
+    // Immediate exit — skips libuv handle cleanup to avoid UV_HANDLE_CLOSING assertion on Windows
+    setImmediate(() => process._exit(0));
+  });
