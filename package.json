@@ -1,6 +1,6 @@
 {
   "name": "claude-usage-monitor",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Claude Code plugin for monitoring usage limits and context window",
   "private": true,
   "scripts": {

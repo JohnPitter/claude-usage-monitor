@@ -234,9 +234,36 @@ function outputEmpty() {
   }));
 }
 
+// ─── Native rate_limits support (CLI v2.1.80+) ─────────────
+
+/**
+ * Check if a fresh native cache exists (written by statusline.js
+ * from the CLI's rate_limits field). If so, reuse it instead of
+ * making an API call.
+ */
+function readNativeCache() {
+  try {
+    const raw = require("fs").readFileSync(CACHE_PATH, "utf-8");
+    const cache = JSON.parse(raw);
+    if (cache.source === "native" && cache.ts && (Date.now() - cache.ts < 5 * 60 * 1000)) {
+      return cache.usage;
+    }
+  } catch {}
+  return null;
+}
+
 // ─── Main ───────────────────────────────────────────────────
 
 async function main() {
+  // First check if we have fresh native data (no API call needed)
+  const nativeUsage = readNativeCache();
+  if (nativeUsage) {
+    const creds = await readCredentials();
+    const card = buildUsageCard(nativeUsage, creds);
+    outputUsage(card, card);
+    return;
+  }
+
   const { token, creds } = await getOAuthToken();
 
   if (!token) {

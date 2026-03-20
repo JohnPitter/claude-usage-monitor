@@ -220,9 +220,30 @@ function renderCard(usage, creds) {
   return header + "\n---\n\n" + sections.join("\n\n---\n\n");
 }
 
+// ─── Native rate_limits cache (CLI v2.1.80+) ────────────────
+
+function readNativeCache() {
+  try {
+    const raw = require("fs").readFileSync(CACHE_PATH, "utf-8");
+    const cache = JSON.parse(raw);
+    if (cache.source === "native" && cache.ts && (Date.now() - cache.ts < 5 * 60 * 1000)) {
+      return cache.usage;
+    }
+  } catch {}
+  return null;
+}
+
 // ─── Main ───────────────────────────────────────────────────
 
 async function main() {
+  // Try native cache first (populated by statusline from CLI rate_limits)
+  const nativeUsage = readNativeCache();
+  if (nativeUsage) {
+    const creds = await readCredentials();
+    console.log(renderCard(nativeUsage, creds));
+    return;
+  }
+
   const { token, creds } = await getOAuthToken();
 
   if (!token) {

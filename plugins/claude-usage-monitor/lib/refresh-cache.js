@@ -28,6 +28,11 @@ function isCacheStale() {
   try {
     const raw = readFileSync(CACHE_PATH, "utf-8");
     const cache = JSON.parse(raw);
+    // If cache was populated by native rate_limits (CLI v2.1.80+),
+    // skip API calls entirely — the statusline script keeps it fresh
+    if (cache.source === "native" && cache.ts && (Date.now() - cache.ts < STALE_MS)) {
+      return false;
+    }
     return !cache.ts || (Date.now() - cache.ts > STALE_MS);
   } catch {
     return true;

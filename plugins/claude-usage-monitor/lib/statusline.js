@@ -167,6 +167,34 @@ function readCache() {
   }
 }
 
+/**
+ * Convert the native rate_limits format from Claude Code CLI v2.1.80+
+ * into the same shape as the Anthropic OAuth API response, so the rest
+ * of the rendering logic can stay unchanged.
+ *
+ * Native format (array of windows):
+ *   rate_limits: [
+ *     { type: "five_hour", used_percentage: 42.5, resets_at: "..." },
+ *     { type: "seven_day", used_percentage: 18.0, resets_at: "..." },
+ *     ...
+ *   ]
+ *
+ * Normalized to: { five_hour: { utilization: 42.5, resets_at }, ... }
+ */
+function normalizeNativeRateLimits(rateLimits) {
+  if (!Array.isArray(rateLimits) || rateLimits.length === 0) return null;
+
+  const usage = {};
+  for (const window of rateLimits) {
+    if (!window.type) continue;
+    usage[window.type] = {
+      utilization: window.used_percentage ?? 0,
+      resets_at: window.resets_at ?? null,
+    };
+  }
+  return Object.keys(usage).length > 0 ? usage : null;
+}
+
 function main() {
   // Read session info from stdin (Claude Code sends JSON)
   let stdinData = "";
@@ -183,9 +211,29 @@ function main() {
     // ignore parse errors
   }
 
-  const cache = readCache();
-  if (!cache || !cache.usage) {
-    // No cached data — show minimal info
+  // Prefer native rate_limits from CLI v2.1.80+ (no API call needed)
+  let usage = null;
+  const nativeUsage = normalizeNativeRateLimits(session?.rate_limits);
+
+  if (nativeUsage) {
+    usage = nativeUsage;
+    // Update cache so other consumers (agenthub-plugin) can read it
+    try {
+      const { writeFileSync } = require("fs");
+      writeFileSync(CACHE_PATH, JSON.stringify({ usage, ts: Date.now(), source: "native" }), "utf-8");
+    } catch {
+      // non-critical
+    }
+  } else {
+    // Fall back to cached data from API calls
+    const cache = readCache();
+    if (cache && cache.usage) {
+      usage = cache.usage;
+    }
+  }
+
+  if (!usage) {
+    // No data available — show minimal info
     const cost = session?.cost?.total_cost_usd;
     if (cost != null) {
       console.log(`${DIM}Usage: no data${RESET}  ${CYAN}$${Number(cost).toFixed(2)}${RESET}`);
@@ -194,8 +242,6 @@ function main() {
     }
     return;
   }
-
-  const usage = cache.usage;
   const parts = [];
 
   // Opus 5-hour
