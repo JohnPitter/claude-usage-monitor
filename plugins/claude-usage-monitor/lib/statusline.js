@@ -244,18 +244,32 @@ function main() {
   }
   const parts = [];
 
-  // Current model — short label so the statusline stays compact
-  const modelRaw = session?.model;
-  if (modelRaw) {
-    const m = String(modelRaw).toLowerCase();
-    let label = modelRaw;
-    if (m.includes("opus-4-7")) label = "Opus 4.7";
+  // Current model — short label so the statusline stays compact.
+  // session.model can be a string (older CLIs) or an object like
+  // { id, display_name } (Claude Code v2.x). Handle both shapes.
+  const modelField = session?.model;
+  let modelStr = "";
+  if (typeof modelField === "string") {
+    modelStr = modelField;
+  } else if (modelField && typeof modelField === "object") {
+    modelStr = modelField.display_name || modelField.id || modelField.name || "";
+  }
+  if (modelStr) {
+    const m = String(modelStr).toLowerCase();
+    let label = modelStr;
+    if (m.includes("opus") && m.includes("4.7")) label = "Opus 4.7";
+    else if (m.includes("opus-4-7")) label = "Opus 4.7";
+    else if (m.includes("opus") && m.includes("4.6")) label = "Opus 4.6";
     else if (m.includes("opus-4-6")) label = "Opus 4.6";
+    else if (m.includes("opus") && m.includes("4.5")) label = "Opus 4.5";
     else if (m.includes("opus-4-5")) label = "Opus 4.5";
     else if (m.includes("opus")) label = "Opus";
+    else if (m.includes("sonnet") && m.includes("4.6")) label = "Sonnet 4.6";
     else if (m.includes("sonnet-4-6")) label = "Sonnet 4.6";
+    else if (m.includes("sonnet") && m.includes("4.5")) label = "Sonnet 4.5";
     else if (m.includes("sonnet-4-5")) label = "Sonnet 4.5";
     else if (m.includes("sonnet")) label = "Sonnet";
+    else if (m.includes("haiku") && m.includes("4.5")) label = "Haiku 4.5";
     else if (m.includes("haiku-4-5")) label = "Haiku 4.5";
     else if (m.includes("haiku")) label = "Haiku";
     parts.push(`${CYAN}${BOLD}${label}${RESET}`);
