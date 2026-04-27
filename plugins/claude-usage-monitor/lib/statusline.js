@@ -275,34 +275,37 @@ function main() {
     parts.push(`${CYAN}${BOLD}${label}${RESET}`);
   }
 
-  // Opus 5-hour
-  if (usage.five_hour) {
-    const frac = Math.max(0, Math.min(100, usage.five_hour.utilization || 0)) / 100;
+  // Detect active model family so we only show the limits that matter for it.
+  // Opus burns the 5-hour Opus window; Sonnet/Haiku burn their own 7-day windows.
+  // The shared 7-day "all models" window is always relevant.
+  const activeFamily = (() => {
+    if (!modelStr) return "unknown";
+    const m = String(modelStr).toLowerCase();
+    if (m.includes("opus")) return "opus";
+    if (m.includes("sonnet")) return "sonnet";
+    if (m.includes("haiku")) return "haiku";
+    return "unknown";
+  })();
+
+  function pushUsage(label, window) {
+    if (!window) return;
+    const frac = Math.max(0, Math.min(100, window.utilization || 0)) / 100;
     const pct = Math.round(frac * 100);
     const bar = renderMiniBar(frac);
     const color = getColor(frac);
-    const reset = formatResetShort(usage.five_hour.resets_at);
-    parts.push(`${BOLD}Opus 5h${RESET} ${bar} ${color}${pct}%${RESET}${DIM}(${reset})${RESET}`);
+    const reset = formatResetShort(window.resets_at);
+    parts.push(`${BOLD}${label}${RESET} ${bar} ${color}${pct}%${RESET}${DIM}(${reset})${RESET}`);
   }
 
-  // All models 7-day
-  if (usage.seven_day) {
-    const frac = Math.max(0, Math.min(100, usage.seven_day.utilization || 0)) / 100;
-    const pct = Math.round(frac * 100);
-    const bar = renderMiniBar(frac);
-    const color = getColor(frac);
-    const reset = formatResetShort(usage.seven_day.resets_at);
-    parts.push(`${BOLD}All 7d${RESET} ${bar} ${color}${pct}%${RESET}${DIM}(${reset})${RESET}`);
+  if (activeFamily === "opus" || activeFamily === "unknown") {
+    pushUsage("Opus 5h", usage.five_hour);
   }
-
-  // Sonnet 7-day
-  if (usage.seven_day_sonnet) {
-    const frac = Math.max(0, Math.min(100, usage.seven_day_sonnet.utilization || 0)) / 100;
-    const pct = Math.round(frac * 100);
-    const bar = renderMiniBar(frac);
-    const color = getColor(frac);
-    const reset = formatResetShort(usage.seven_day_sonnet.resets_at);
-    parts.push(`${BOLD}Sonnet 7d${RESET} ${bar} ${color}${pct}%${RESET}${DIM}(${reset})${RESET}`);
+  pushUsage("All 7d", usage.seven_day);
+  if (activeFamily === "sonnet" || activeFamily === "unknown") {
+    pushUsage("Sonnet 7d", usage.seven_day_sonnet);
+  }
+  if (activeFamily === "haiku" || activeFamily === "unknown") {
+    pushUsage("Haiku 7d", usage.seven_day_haiku);
   }
 
   // Parse transcript for thinking mode and context tokens
