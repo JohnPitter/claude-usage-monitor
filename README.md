@@ -37,11 +37,13 @@ Plan: Max | Extra: $10.49 / $275.00
 
 ### Status Line
 
-A compact bar at the bottom of your terminal, always visible, updating after each response:
+A compact bar at the bottom of your terminal, always visible. Refreshes after each response **and** on a configurable timer (default 60 s) so you can see usage drain in real time even while idle:
 
 ```
-Opus 5h █░░░░ 21%(2h)  All 7d █░░░░ 29%(4d)  Sonnet 7d █░░░░ 4%(4d)  Think:OFF
+Opus 4.7  Opus 5h █░░░░ 21%(2h)  All 7d █░░░░ 29%(4d)  Ctx ██░░░ 245k/1.0M  Think:ON
 ```
+
+The current model name is shown first (e.g. `Opus 4.7`, `Sonnet 4.6`, `Haiku 4.5`), followed by rolling-window usage, the live context window, and the thinking-mode badge.
 
 ### Smart Alerts
 
@@ -64,7 +66,9 @@ Plan: Max | Extra: $10.49 / $275.00
 |---------|-------------|
 | **Startup Card** | Full usage summary on session start via `systemMessage` |
 | **Status Line** | Compact bar at the bottom of the terminal, always visible |
-| **Live Updates** | Usage data refreshes after each Claude response |
+| **Current Model** | Status line shows which model is active (`Opus 4.7`, `Sonnet 4.6`, `Haiku 4.5`, …) |
+| **Live Updates** | Refreshes after each Claude response **and** on a configurable interval (default 60 s) so usage stays accurate even while idle |
+| **Context Window** | Live `Ctx` bar showing tokens used vs the model's context limit |
 | **Progress Bars** | Unicode bars with color-coded thresholds (green/yellow/red) |
 | **Smart Alerts** | Warning when approaching any limit (>80%) |
 | **Reset Countdown** | Time until each limit resets |
@@ -118,10 +122,13 @@ After installing, add the status line to your `~/.claude/settings.json`:
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/<marketplace-hash>/claude-usage-monitor/1.1.0/lib/statusline.js"
+    "command": "node ~/.claude/plugins/cache/<marketplace-hash>/claude-usage-monitor/<version>/lib/statusline.js",
+    "refreshInterval": 60
   }
 }
 ```
+
+`refreshInterval` (in seconds) tells Claude Code to re-run the status line on a timer in addition to the default event-driven updates. Set it to `60` for once-a-minute refreshes, or omit it if you only want updates after each assistant turn. Minimum value is `1`.
 
 > **Tip:** The exact path depends on your installation method. Check `~/.claude/plugins/cache/` for your plugin's location, or use the absolute path from `~/.claude/plugins/installed_plugins.json`.
 

@@ -244,6 +244,23 @@ function main() {
   }
   const parts = [];
 
+  // Current model — short label so the statusline stays compact
+  const modelRaw = session?.model;
+  if (modelRaw) {
+    const m = String(modelRaw).toLowerCase();
+    let label = modelRaw;
+    if (m.includes("opus-4-7")) label = "Opus 4.7";
+    else if (m.includes("opus-4-6")) label = "Opus 4.6";
+    else if (m.includes("opus-4-5")) label = "Opus 4.5";
+    else if (m.includes("opus")) label = "Opus";
+    else if (m.includes("sonnet-4-6")) label = "Sonnet 4.6";
+    else if (m.includes("sonnet-4-5")) label = "Sonnet 4.5";
+    else if (m.includes("sonnet")) label = "Sonnet";
+    else if (m.includes("haiku-4-5")) label = "Haiku 4.5";
+    else if (m.includes("haiku")) label = "Haiku";
+    parts.push(`${CYAN}${BOLD}${label}${RESET}`);
+  }
+
   // Opus 5-hour
   if (usage.five_hour) {
     const frac = Math.max(0, Math.min(100, usage.five_hour.utilization || 0)) / 100;
