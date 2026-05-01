@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-orange?style=for-the-badge&logo=anthropic)
-![Version](https://img.shields.io/badge/Version-1.1.0-purple?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.2.2-purple?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=nodedotjs)
 
@@ -40,10 +40,12 @@ Plan: Max | Extra: $10.49 / $275.00
 A compact bar at the bottom of your terminal, always visible. Refreshes after each response **and** on a configurable timer (default 60 s) so you can see usage drain in real time even while idle:
 
 ```
-Opus 4.7  Opus 5h █░░░░ 21%(2h)  All 7d █░░░░ 29%(4d)  Ctx ██░░░ 245k/1.0M  Think:ON
+Opus 4.7    Opus 5h █░░░░ 21%(2h)    All 7d █░░░░ 29%(4d)    Ctx ██░░░ 245k/1.0M    Think:ON
+Sonnet 4.6  Sonnet 7d ██░░░ 33%(4d)  All 7d █░░░░ 29%(4d)    Ctx █░░░░ 45.2k/1.0M
+Haiku 4.5   Haiku 7d █░░░░ 12%(4d)   All 7d █░░░░ 29%(4d)    Ctx █░░░░ 12.1k/200k
 ```
 
-The current model name is shown first (e.g. `Opus 4.7`, `Sonnet 4.6`, `Haiku 4.5`), followed by rolling-window usage, the live context window, and the thinking-mode badge.
+The order is always: **model name → model-specific limit → All 7d → context window → thinking mode**. Each model shows its own relevant limit first (Opus shows the 5-hour window, Sonnet/Haiku show their 7-day windows), then the shared all-models 7-day window.
 
 ### Smart Alerts
 

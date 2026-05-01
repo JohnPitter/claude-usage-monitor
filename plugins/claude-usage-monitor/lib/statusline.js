@@ -297,16 +297,14 @@ function main() {
     parts.push(`${BOLD}${label}${RESET} ${bar} ${color}${pct}%${RESET}${DIM}(${reset})${RESET}`);
   }
 
-  if (activeFamily === "opus" || activeFamily === "unknown") {
+  if (activeFamily === "opus") {
     pushUsage("Opus 5h", usage.five_hour);
-  }
-  pushUsage("All 7d", usage.seven_day);
-  if (activeFamily === "sonnet" || activeFamily === "unknown") {
+  } else if (activeFamily === "sonnet") {
     pushUsage("Sonnet 7d", usage.seven_day_sonnet);
-  }
-  if (activeFamily === "haiku" || activeFamily === "unknown") {
+  } else if (activeFamily === "haiku") {
     pushUsage("Haiku 7d", usage.seven_day_haiku);
   }
+  pushUsage("All 7d", usage.seven_day);
 
   // Parse transcript for thinking mode and context tokens
   const transcriptData = parseTranscriptTail(session?.transcript_path);
