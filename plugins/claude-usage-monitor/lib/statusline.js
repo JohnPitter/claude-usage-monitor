@@ -303,8 +303,10 @@ function main() {
   if (activeFamily === "opus") {
     pushUsage("Opus 5h", usage.five_hour);
   } else if (activeFamily === "sonnet") {
+    pushUsage("Sessão 5h", usage.five_hour);
     pushUsage("Sonnet 7d", usage.seven_day_sonnet);
   } else if (activeFamily === "haiku") {
+    pushUsage("Sessão 5h", usage.five_hour);
     pushUsage("Haiku 7d", usage.seven_day_haiku);
   }
   pushUsage("All 7d", usage.seven_day);
