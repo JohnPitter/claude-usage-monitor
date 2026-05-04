@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-orange?style=for-the-badge&logo=anthropic)
-![Version](https://img.shields.io/badge/Version-1.2.2-purple?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.2.3-purple?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=nodedotjs)
 

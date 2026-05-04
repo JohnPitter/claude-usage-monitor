@@ -216,7 +216,10 @@ function main() {
   const nativeUsage = normalizeNativeRateLimits(session?.rate_limits);
 
   if (nativeUsage) {
-    usage = nativeUsage;
+    // Merge with existing API cache to preserve model-specific fields
+    // (e.g. seven_day_sonnet, seven_day_haiku) that the CLI native format omits
+    const existingCache = readCache();
+    usage = existingCache?.usage ? { ...existingCache.usage, ...nativeUsage } : nativeUsage;
     // Update cache so other consumers (agenthub-plugin) can read it
     try {
       const { writeFileSync } = require("fs");
