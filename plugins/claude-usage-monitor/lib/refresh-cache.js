@@ -11,12 +11,13 @@
  * UV_HANDLE_CLOSING assertion on Windows.
  */
 
-const { readFile, writeFile, readFileSync } = require("fs");
+const { writeFile, readFileSync } = require("fs");
 const { homedir } = require("os");
 const { join } = require("path");
 const https = require("https");
 
-const CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
+const { readCredentials, writeCredentials } = require("./credentials");
+
 const CACHE_PATH = join(homedir(), ".claude", ".usage-cache.json");
 const CLAUDE_OAUTH_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 const STALE_MS = 2 * 60 * 1000; // 2 minutes
@@ -63,15 +64,6 @@ function httpsRequest(url, options, body) {
 
 // ─── Credentials ────────────────────────────────────────────
 
-function readCredentials() {
-  return new Promise((resolve) => {
-    readFile(CREDENTIALS_PATH, "utf-8", (err, data) => {
-      if (err) return resolve(null);
-      try { resolve(JSON.parse(data)); } catch { resolve(null); }
-    });
-  });
-}
-
 function refreshOAuthToken(creds) {
   const oauth = creds.claudeAiOauth;
   if (!oauth?.refreshToken) return Promise.resolve(null);
@@ -85,7 +77,7 @@ function refreshOAuthToken(creds) {
   return httpsRequest("https://console.anthropic.com/v1/oauth/token", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
-  }, body).then((data) => {
+  }, body).then(async (data) => {
     if (!data) return null;
     const newOauth = {
       ...oauth,
@@ -93,12 +85,8 @@ function refreshOAuthToken(creds) {
       refreshToken: data.refresh_token ?? oauth.refreshToken,
       expiresAt: Date.now() + data.expires_in * 1000,
     };
-    const updated = { ...creds, claudeAiOauth: newOauth };
-    return new Promise((resolve) => {
-      writeFile(CREDENTIALS_PATH, JSON.stringify(updated, null, 2), "utf-8", () => {
-        resolve(data.access_token);
-      });
-    });
+    await writeCredentials({ ...creds, claudeAiOauth: newOauth });
+    return data.access_token;
   });
 }
 
