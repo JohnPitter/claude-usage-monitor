@@ -3,13 +3,15 @@
 <div align="center">
 
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-orange?style=for-the-badge&logo=anthropic)
-![Version](https://img.shields.io/badge/Version-1.2.4-purple?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.3.0-purple?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=nodedotjs)
 
 **See your Claude Code usage limits at a glance — always.**
 
 *Startup card + persistent status line + live updates + zero configuration*
+
+> **v1.3.0** — Reads OAuth credentials from the macOS Keychain and Windows Credential Manager, and configures the persistent status line on first run. No more manual `settings.json` edits.
 
 [Installation](#installation) •
 [Features](#features) •
@@ -118,13 +120,17 @@ claude /install-plugin https://github.com/JohnPitter/claude-usage-monitor
 
 ### Status Line Setup
 
-After installing, add the status line to your `~/.claude/settings.json`:
+**Automatic on first run** (since v1.3.0). On the first session start after install, the plugin writes the correct `statusLine` block into your `~/.claude/settings.json` — no manual edit needed. Restart Claude Code once and the bar appears at the bottom of your terminal.
+
+The plugin only writes if `statusLine` is missing or already points to itself. If you have a different status line (`ccstatusline`, `starship-claude`, etc.), the plugin leaves your config alone.
+
+To customize, edit `~/.claude/settings.json` directly:
 
 ```json
 {
   "statusLine": {
     "type": "command",
-    "command": "node ~/.claude/plugins/cache/<marketplace-hash>/claude-usage-monitor/<version>/lib/statusline.js",
+    "command": "node /absolute/path/to/lib/statusline.js",
     "refreshInterval": 60
   }
 }
@@ -132,13 +138,19 @@ After installing, add the status line to your `~/.claude/settings.json`:
 
 `refreshInterval` (in seconds) tells Claude Code to re-run the status line on a timer in addition to the default event-driven updates. Set it to `60` for once-a-minute refreshes, or omit it if you only want updates after each assistant turn. Minimum value is `1`.
 
-> **Tip:** The exact path depends on your installation method. Check `~/.claude/plugins/cache/` for your plugin's location, or use the absolute path from `~/.claude/plugins/installed_plugins.json`.
-
 ---
 
 ## Configuration
 
-**No configuration needed.** The plugin reads your existing Claude Code OAuth credentials from `~/.claude/.credentials.json`.
+**No configuration needed.** The plugin reads your existing Claude Code OAuth credentials from the platform's secure storage:
+
+| Platform | Source |
+|----------|--------|
+| macOS | Keychain item `Claude Code-credentials` |
+| Windows | Credential Manager target `Claude Code-credentials` |
+| Linux | `~/.claude/.credentials.json` |
+
+If the secure store lookup fails on macOS or Windows, the plugin falls back to `~/.claude/.credentials.json`, so manual file installs still work.
 
 ### Behavior by Scenario
 
@@ -243,7 +255,7 @@ claude-usage-monitor/
 | Issue | Description | Workaround |
 |-------|-------------|------------|
 | VS Code extension | `systemMessage` not displayed in VS Code ([#15344](https://github.com/anthropics/claude-code/issues/15344)) | Use the CLI for full experience |
-| Status line setup | Requires manual `settings.json` edit | Follow the [Status Line Setup](#status-line-setup) section |
+| Windows credentials reader | Implemented from Win32 API docs but not yet exercised on a real Windows host | Falls back to `~/.claude/.credentials.json`. Open an issue if you hit a problem. |
 
 ---
 
