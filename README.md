@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-Plugin-orange?style=for-the-badge&logo=anthropic)
-![Version](https://img.shields.io/badge/Version-1.3.0-purple?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-1.3.1-purple?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=nodedotjs)
 
@@ -11,6 +11,8 @@
 
 *Startup card + persistent status line + live updates + zero configuration*
 
+> **v1.3.1** — Refreshes the cache after every assistant turn so the status line stays live (was getting stuck on stale data between sessions).
+>
 > **v1.3.0** — Reads OAuth credentials from the macOS Keychain and Windows Credential Manager, and configures the persistent status line on first run. No more manual `settings.json` edits.
 
 [Installation](#installation) •
@@ -151,6 +153,10 @@ To customize, edit `~/.claude/settings.json` directly:
 | Linux | `~/.claude/.credentials.json` |
 
 If the secure store lookup fails on macOS or Windows, the plugin falls back to `~/.claude/.credentials.json`, so manual file installs still work.
+
+### Does this plugin consume my session quota?
+
+**No.** The plugin queries the Anthropic OAuth Usage endpoint (`api.anthropic.com/api/oauth/usage`), which is a metadata read about your limits — it is not a model inference call and does not count against your 5-hour rolling window or 7-day budget. Hooks run as local Node scripts on your machine, so they consume zero tokens. The endpoint is the same one the `claude` CLI consults internally to render its built-in usage views.
 
 ### Behavior by Scenario
 
