@@ -7,23 +7,18 @@
  * with all usage information formatted for display.
  */
 
-const { readFile, writeFile } = require("fs/promises");
+const { writeFile } = require("fs/promises");
 const { homedir } = require("os");
 const { join } = require("path");
 
-const CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
+const { readCredentials, writeCredentials } = require("./credentials");
+
 const SETTINGS_PATH = join(homedir(), ".claude", "settings.json");
 const CACHE_PATH = join(homedir(), ".claude", ".usage-cache.json");
 const CLAUDE_OAUTH_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 const REQUEST_TIMEOUT = 5000;
 
 // ─── Credentials ────────────────────────────────────────────
-
-async function readCredentials() {
-  try {
-    return JSON.parse(await readFile(CREDENTIALS_PATH, "utf-8"));
-  } catch { return null; }
-}
 
 async function refreshOAuthToken(creds) {
   const oauth = creds.claudeAiOauth;
@@ -50,7 +45,7 @@ async function refreshOAuthToken(creds) {
       refreshToken: data.refresh_token ?? oauth.refreshToken,
       expiresAt: Date.now() + data.expires_in * 1000,
     };
-    await writeFile(CREDENTIALS_PATH, JSON.stringify({ ...creds, claudeAiOauth: newOauth }, null, 2), "utf-8");
+    await writeCredentials({ ...creds, claudeAiOauth: newOauth });
     return data.access_token;
   } catch { return null; }
 }

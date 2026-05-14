@@ -3,34 +3,31 @@
 /**
  * Claude Usage Monitor — SessionStart Hook
  *
- * Reads OAuth credentials from ~/.claude/.credentials.json,
+ * Reads OAuth credentials from the platform-appropriate store
+ * (macOS Keychain / Windows Credential Manager / Linux file),
  * fetches usage limits from Anthropic API, and outputs JSON
- * with usage data as additionalContext for the session.
+ * with usage data as additionalContext for the session. Also
+ * auto-configures the persistent statusLine on first run.
  *
  * Silent on any error — never blocks session start.
  */
 
-const { readFile, writeFile } = require("fs/promises");
+const { writeFile } = require("fs/promises");
 const { homedir } = require("os");
-const { join } = require("path");
+const { join, dirname } = require("path");
 
-const CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
+const { readCredentials, writeCredentials } = require("./credentials");
+const { ensureStatusLineConfigured } = require("./settings-writer");
+
 const SETTINGS_PATH = join(homedir(), ".claude", "settings.json");
 const CACHE_PATH = join(homedir(), ".claude", ".usage-cache.json");
 const CLAUDE_OAUTH_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e";
 const TOKEN_REFRESH_MARGIN = 10 * 60 * 1000;
 const REQUEST_TIMEOUT = 5000;
 
-// ─── Credentials ────────────────────────────────────────────
+const PLUGIN_ROOT = dirname(__dirname);
 
-async function readCredentials() {
-  try {
-    const raw = await readFile(CREDENTIALS_PATH, "utf-8");
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
+// ─── Credentials ────────────────────────────────────────────
 
 async function refreshOAuthToken(creds) {
   const oauth = creds.claudeAiOauth;
@@ -64,8 +61,7 @@ async function refreshOAuthToken(creds) {
       expiresAt: Date.now() + data.expires_in * 1000,
     };
 
-    const updatedCreds = { ...creds, claudeAiOauth: newOauth };
-    await writeFile(CREDENTIALS_PATH, JSON.stringify(updatedCreds, null, 2), "utf-8");
+    await writeCredentials({ ...creds, claudeAiOauth: newOauth });
 
     return data.access_token;
   } catch {
@@ -168,7 +164,7 @@ function readThinkingMode() {
   }
 }
 
-function buildUsageCard(usage, creds) {
+function buildUsageCard(usage, creds, statusLineNotice) {
   const subType = creds?.claudeAiOauth?.subscriptionType ?? "Unknown";
   const planLabel = subType.charAt(0).toUpperCase() + subType.slice(1);
   const thinking = readThinkingMode();
@@ -209,7 +205,22 @@ function buildUsageCard(usage, creds) {
     lines.push(`Plan: ${planLabel} | Extra: disabled${thinkSuffix}`);
   }
 
+  if (statusLineNotice) {
+    lines.push("");
+    lines.push(statusLineNotice);
+  }
+
   return lines.join("\n");
+}
+
+function statusLineMessageFor(action) {
+  if (action === "added") {
+    return "\u2728 Persistent status line enabled. Restart Claude Code to see the bar at the bottom.";
+  }
+  if (action === "updated") {
+    return "\u2728 Status line path refreshed for the current plugin version. Restart Claude Code to apply.";
+  }
+  return "";
 }
 
 // ─── Output ─────────────────────────────────────────────────
@@ -255,11 +266,16 @@ function readNativeCache() {
 // ─── Main ───────────────────────────────────────────────────
 
 async function main() {
+  const statusLineAction = await ensureStatusLineConfigured({
+    pluginRoot: PLUGIN_ROOT,
+  }).catch(() => "deferred");
+  const statusLineNotice = statusLineMessageFor(statusLineAction);
+
   // First check if we have fresh native data (no API call needed)
   const nativeUsage = readNativeCache();
   if (nativeUsage) {
     const creds = await readCredentials();
-    const card = buildUsageCard(nativeUsage, creds);
+    const card = buildUsageCard(nativeUsage, creds, statusLineNotice);
     outputUsage(card, card);
     return;
   }
@@ -291,7 +307,7 @@ async function main() {
     // non-critical, status line will just show "no data"
   }
 
-  const card = buildUsageCard(usage, creds);
+  const card = buildUsageCard(usage, creds, statusLineNotice);
   outputUsage(card, card);
 }
 
