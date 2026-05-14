@@ -278,6 +278,14 @@ function main() {
     parts.push(`${CYAN}${BOLD}${label}${RESET}`);
   }
 
+  // Effort level
+  const effortLevel = session?.effort?.level;
+  if (effortLevel) {
+    const effortColors = { low: DIM, medium: "", high: YELLOW, xhigh: RED, max: `${RED}${BOLD}` };
+    const effortColor = effortColors[effortLevel] ?? "";
+    parts.push(`${effortColor}Effort:${effortLevel}${RESET}`);
+  }
+
   // Detect active model family so we only show the limits that matter for it.
   // Opus burns the 5-hour Opus window; Sonnet/Haiku burn their own 7-day windows.
   // The shared 7-day "all models" window is always relevant.
